@@ -9,6 +9,7 @@ const memoryStore = require('./services/memoryStore');
 const mongoStore = require('./services/mongoStore');
 const agentService = require('./services/agentService');
 const geminiService = require('./services/geminiService');
+const blind75Service = require('./services/blind75Service');
 
 // Use MongoDB if enabled and connected, otherwise use memoryStore
 const USE_MONGODB = process.env.USE_MONGODB !== 'false';
@@ -337,6 +338,291 @@ app.post('/api/get_image_hint', async (req, res) => {
   }
 });
 
+// ==================== Blind 75 Routes ====================
+
+/**
+ * GET /api/blind75
+ * Get all Blind 75 problems with optional filters and user progress
+ */
+app.get('/api/blind75', async (req, res) => {
+  try {
+    const { user_id, pattern, difficulty } = req.query;
+
+    const filters = {};
+    if (pattern) filters.pattern = pattern;
+    if (difficulty) filters.difficulty = difficulty;
+
+    const problems = await blind75Service.getAllProblems(user_id, filters);
+
+    res.json({
+      success: true,
+      problems,
+      count: problems.length
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/blind75/pattern/:pattern
+ * Get Blind 75 problems filtered by pattern
+ */
+app.get('/api/blind75/pattern/:pattern', async (req, res) => {
+  try {
+    const { pattern } = req.params;
+    const { user_id } = req.query;
+
+    const problems = await blind75Service.getProblemsByPattern(pattern, user_id);
+
+    res.json({
+      success: true,
+      pattern,
+      problems,
+      count: problems.length
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75/pattern:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/blind75/problem/:slug
+ * Get a specific Blind 75 problem by slug
+ */
+app.get('/api/blind75/problem/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const problem = await blind75Service.getProblemBySlug(slug);
+
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Problem not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      problem
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75/problem:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/blind75/:slug/complete
+ * Mark a Blind 75 problem as completed
+ */
+app.post('/api/blind75/:slug/complete', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { user_id } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id is required'
+      });
+    }
+
+    // Get problem to find problemId
+    const problem = await blind75Service.getProblemBySlug(slug);
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Problem not found'
+      });
+    }
+
+    const success = await blind75Service.markProblemCompleted(user_id, problem.problemId);
+
+    if (!success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to mark problem as completed'
+      });
+    }
+
+    const progress = await blind75Service.getUserProgress(user_id);
+
+    res.json({
+      success: true,
+      message: 'Problem marked as completed',
+      progress
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75/complete:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/blind75/:slug/in-progress
+ * Mark a Blind 75 problem as in progress
+ */
+app.post('/api/blind75/:slug/in-progress', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { user_id } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id is required'
+      });
+    }
+
+    // Get problem to find problemId
+    const problem = await blind75Service.getProblemBySlug(slug);
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Problem not found'
+      });
+    }
+
+    const success = await blind75Service.markProblemInProgress(user_id, problem.problemId);
+
+    if (!success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to mark problem as in progress'
+      });
+    }
+
+    const progress = await blind75Service.getUserProgress(user_id);
+
+    res.json({
+      success: true,
+      message: 'Problem marked as in progress',
+      progress
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75/in-progress:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/blind75/progress/:user_id
+ * Get user's Blind 75 progress
+ */
+app.get('/api/blind75/progress/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    const progress = await blind75Service.getUserProgress(user_id);
+
+    res.json({
+      success: true,
+      progress
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75/progress:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/blind75/:user_id/reset
+ * Reset user's Blind 75 progress
+ */
+app.post('/api/blind75/:user_id/reset', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    const success = await blind75Service.resetProgress(user_id);
+
+    if (!success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to reset progress'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Progress reset successfully'
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75/reset:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/blind75/statistics/:user_id
+ * Get Blind 75 statistics with pattern and difficulty breakdown
+ */
+app.get('/api/blind75/statistics/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    const statistics = await blind75Service.getStatistics(user_id);
+
+    if (!statistics) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to get statistics'
+      });
+    }
+
+    res.json({
+      success: true,
+      statistics
+    });
+
+  } catch (error) {
+    console.error('Error in /api/blind75/statistics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 /**
  * GET /api/health
  * Health check endpoint
@@ -384,6 +670,9 @@ async function startServer() {
     if (connected) {
       dataStore = mongoStore;
       console.log('✅ Using MongoDB for data storage');
+
+      // Seed Blind 75 problems if MongoDB is connected
+      await blind75Service.seedProblems();
     } else {
       console.log('⚠️  Using in-memory storage as fallback');
     }
@@ -409,6 +698,12 @@ async function startServer() {
     console.log('  GET    /api/user_problems/:user_id');
     console.log('  GET    /api/patterns');
     console.log('  GET    /api/agent_metrics');
+    console.log('  GET    /api/blind75');
+    console.log('  GET    /api/blind75/pattern/:pattern');
+    console.log('  GET    /api/blind75/problem/:slug');
+    console.log('  POST   /api/blind75/:slug/complete');
+    console.log('  GET    /api/blind75/progress/:user_id');
+    console.log('  GET    /api/blind75/statistics/:user_id');
     console.log('  GET    /api/health');
     console.log('='.repeat(60));
   });

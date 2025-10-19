@@ -12,13 +12,29 @@ class GeminiService {
     }
   }
 
-  async generateProblem(pattern, difficulty = 'medium') {
+  async generateProblem(pattern, difficulty = 'medium', blind75Examples = []) {
     if (!this.genAI) {
       return this.getMockProblem(pattern, difficulty);
     }
 
     try {
+      // Build context from Blind 75 examples if available
+      let contextSection = '';
+      if (blind75Examples && blind75Examples.length > 0) {
+        contextSection = `\n\n**Reference Problems (Blind 75 LeetCode problems for inspiration):**
+${blind75Examples.map((p, idx) => `
+${idx + 1}. ${p.title} (${p.difficulty})
+   Pattern: ${p.pattern}
+   Description: ${p.description.substring(0, 200)}...
+   LeetCode: ${p.leetcodeUrl}
+`).join('\n')}
+
+Use these as inspiration to create a SIMILAR but UNIQUE problem that tests the same pattern and skills.
+Do NOT copy these problems directly - create a new, original problem inspired by their style and complexity.`;
+      }
+
       const prompt = `Generate a LeetCode-style coding problem for the algorithmic pattern: "${pattern}".
+${contextSection}
 
 Requirements:
 - Difficulty level: ${difficulty}
@@ -26,6 +42,7 @@ Requirements:
 - Include a clear problem description with examples
 - Provide 3-4 test cases (input/expected output pairs)
 - Make it practical and realistic
+- If reference problems are provided, match their style and complexity but create something NEW
 
 Format your response as JSON with this structure:
 {

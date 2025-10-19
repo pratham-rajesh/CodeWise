@@ -1,4 +1,5 @@
 const geminiService = require('./geminiService');
+const blind75Service = require('./blind75Service');
 
 /**
  * Agent Service Layer
@@ -54,8 +55,32 @@ class AgentService {
       console.log(`[Agent Service] Pattern: ${pattern}, Difficulty: ${difficulty}`);
       console.log(`[Agent Service] Cost: ${this.agents['problem-generator'].creditCost} credit(s)`);
 
-      // Call the actual problem generation service
-      const result = await geminiService.generateProblem(pattern, difficulty);
+      // Fetch Blind 75 examples for the pattern to enhance problem quality
+      let blind75Examples = [];
+      try {
+        const problems = await blind75Service.getProblemsByPattern(pattern);
+        // Get up to 3 examples that match the difficulty or are close
+        blind75Examples = problems
+          .filter(p => p.difficulty === difficulty)
+          .slice(0, 2);
+
+        // If not enough matching difficulty, add some others
+        if (blind75Examples.length < 2) {
+          const others = problems
+            .filter(p => p.difficulty !== difficulty)
+            .slice(0, 2 - blind75Examples.length);
+          blind75Examples = [...blind75Examples, ...others];
+        }
+
+        if (blind75Examples.length > 0) {
+          console.log(`[Agent Service] Using ${blind75Examples.length} Blind 75 examples for context`);
+        }
+      } catch (error) {
+        console.warn(`[Agent Service] Could not fetch Blind 75 examples:`, error.message);
+      }
+
+      // Call the actual problem generation service with Blind 75 context
+      const result = await geminiService.generateProblem(pattern, difficulty, blind75Examples);
 
       // Track metrics
       const responseTime = Date.now() - startTime;
@@ -69,7 +94,8 @@ class AgentService {
         credits_used: this.agents['problem-generator'].creditCost,
         agent_info: {
           agent_name: this.agents['problem-generator'].name,
-          response_time_ms: responseTime
+          response_time_ms: responseTime,
+          blind75_context: blind75Examples.length > 0
         }
       };
 
