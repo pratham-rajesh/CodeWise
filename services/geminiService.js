@@ -1,0 +1,209 @@
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+class GeminiService {
+  constructor() {
+    this.apiKey = process.env.GEMINI_API_KEY;
+    if (!this.apiKey) {
+      console.warn('WARNING: GEMINI_API_KEY not set. AI features will not work.');
+      this.genAI = null;
+    } else {
+      this.genAI = new GoogleGenerativeAI(this.apiKey);
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    }
+  }
+
+  async generateProblem(pattern, difficulty = 'medium') {
+    if (!this.genAI) {
+      return this.getMockProblem(pattern, difficulty);
+    }
+
+    try {
+      const prompt = `Generate a LeetCode-style coding problem for the algorithmic pattern: "${pattern}".
+
+Requirements:
+- Difficulty level: ${difficulty}
+- The problem should clearly demonstrate the ${pattern} pattern
+- Include a clear problem description with examples
+- Provide 3-4 test cases (input/expected output pairs)
+- Make it practical and realistic
+
+Format your response as JSON with this structure:
+{
+  "title": "Problem Title",
+  "description": "Detailed problem description",
+  "examples": [
+    {
+      "input": "example input",
+      "output": "expected output",
+      "explanation": "why this output"
+    }
+  ],
+  "test_cases": [
+    {
+      "input": "test input",
+      "expected_output": "expected output"
+    }
+  ],
+  "constraints": ["constraint 1", "constraint 2"],
+  "hints": ["hint 1", "hint 2"]
+}
+
+Generate a unique, interesting problem now:`;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const problemData = JSON.parse(jsonMatch[0]);
+        return {
+          success: true,
+          problem: {
+            title: problemData.title,
+            description: problemData.description,
+            examples: problemData.examples || [],
+            test_cases: problemData.test_cases || [],
+            constraints: problemData.constraints || [],
+            hints: problemData.hints || [],
+            pattern,
+            difficulty
+          }
+        };
+      } else {
+        throw new Error('Invalid JSON response from Gemini');
+      }
+    } catch (error) {
+      console.error('Error generating problem with Gemini:', error);
+      return {
+        success: false,
+        error: error.message,
+        problem: this.getMockProblem(pattern, difficulty)
+      };
+    }
+  }
+
+  async evaluateCode(code, pattern, problemDescription) {
+    if (!this.genAI) {
+      return this.getMockEvaluation();
+    }
+
+    try {
+      const prompt = `Evaluate this code submission for a ${pattern} pattern problem.
+
+Problem Context: ${problemDescription}
+
+Code Submitted:
+\`\`\`
+${code}
+\`\`\`
+
+Analyze the code and provide feedback in JSON format:
+{
+  "correct": true/false,
+  "errors": ["list of errors or issues found"],
+  "complexity": {
+    "time": "O(n) explanation",
+    "space": "O(1) explanation"
+  },
+  "suggestions": ["improvement 1", "improvement 2"],
+  "pattern_usage": "How well does this use the ${pattern} pattern?",
+  "code_quality": "Assessment of code quality, readability, edge cases",
+  "score": 0-100
+}
+
+Provide detailed, constructive feedback:`;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const evaluation = JSON.parse(jsonMatch[0]);
+        return {
+          success: true,
+          evaluation: {
+            correct: evaluation.correct || false,
+            errors: evaluation.errors || [],
+            complexity: evaluation.complexity || { time: 'Unknown', space: 'Unknown' },
+            suggestions: evaluation.suggestions || [],
+            pattern_usage: evaluation.pattern_usage || 'Not assessed',
+            code_quality: evaluation.code_quality || 'Not assessed',
+            score: evaluation.score || 0
+          }
+        };
+      } else {
+        throw new Error('Invalid JSON response from Gemini');
+      }
+    } catch (error) {
+      console.error('Error evaluating code with Gemini:', error);
+      return {
+        success: false,
+        error: error.message,
+        evaluation: this.getMockEvaluation()
+      };
+    }
+  }
+
+  getMockProblem(pattern, difficulty) {
+    const mockProblems = {
+      sliding_window: {
+        title: "Maximum Sum Subarray of Size K",
+        description: "Given an array of integers and a number k, find the maximum sum of a subarray of size k.",
+        examples: [
+          {
+            input: "arr = [2, 1, 5, 1, 3, 2], k = 3",
+            output: "9",
+            explanation: "Subarray [5, 1, 3] has the maximum sum of 9"
+          }
+        ],
+        test_cases: [
+          { input: "[2, 1, 5, 1, 3, 2], k = 3", expected_output: "9" },
+          { input: "[1, 4, 2, 10, 23, 3, 1, 0, 20], k = 4", expected_output: "39" },
+          { input: "[100, 200, 300, 400], k = 2", expected_output: "700" }
+        ],
+        constraints: ["1 <= arr.length <= 10^5", "1 <= k <= arr.length"],
+        hints: ["Use a sliding window to track the sum", "Slide the window by removing first element and adding next"]
+      },
+      two_pointers: {
+        title: "Two Sum II - Sorted Array",
+        description: "Given a sorted array, find two numbers that add up to a target value. Return their indices.",
+        examples: [
+          {
+            input: "arr = [2, 7, 11, 15], target = 9",
+            output: "[0, 1]",
+            explanation: "2 + 7 = 9"
+          }
+        ],
+        test_cases: [
+          { input: "[2, 7, 11, 15], target = 9", expected_output: "[0, 1]" },
+          { input: "[1, 2, 3, 4, 6], target = 6", expected_output: "[1, 3]" }
+        ],
+        constraints: ["Array is sorted", "Exactly one solution exists"],
+        hints: ["Use two pointers from start and end", "Move pointers based on sum comparison"]
+      }
+    };
+
+    return mockProblems[pattern] || mockProblems.sliding_window;
+  }
+
+  getMockEvaluation() {
+    return {
+      correct: true,
+      errors: [],
+      complexity: {
+        time: "O(n)",
+        space: "O(1)"
+      },
+      suggestions: ["Consider edge cases", "Add input validation"],
+      pattern_usage: "Good use of the pattern",
+      code_quality: "Code is readable and efficient",
+      score: 85
+    };
+  }
+}
+
+module.exports = new GeminiService();

@@ -1,0 +1,286 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
+
+const memoryStore = require('./services/memoryStore');
+const agentService = require('./services/agentService');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// ==================== API Routes ====================
+
+/**
+ * POST /api/request_challenge
+ * Request a new coding challenge for a specific pattern
+ */
+app.post('/api/request_challenge', async (req, res) => {
+  try {
+    const { user_id, pattern, difficulty = 'medium' } = req.body;
+
+    if (!user_id || !pattern) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id and pattern are required'
+      });
+    }
+
+    console.log(`Challenge request from user ${user_id}: ${pattern} (${difficulty})`);
+
+    // Request problem from agent service
+    const agentResult = await agentService.requestProblemFromAgent(
+      pattern,
+      difficulty,
+      user_id
+    );
+
+    if (!agentResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to generate problem',
+        details: agentResult.error
+      });
+    }
+
+    // Update user memory
+    const user = memoryStore.updateUserAfterChallenge(user_id, pattern, difficulty);
+
+    res.json({
+      success: true,
+      problem: agentResult.problem,
+      credits_used: agentResult.credits_used,
+      total_credits_used: user.credits_used,
+      agent_info: agentResult.agent_info
+    });
+
+  } catch (error) {
+    console.error('Error in /api/request_challenge:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/submit_solution
+ * Submit a solution for evaluation
+ */
+app.post('/api/submit_solution', async (req, res) => {
+  try {
+    const { user_id, pattern, code, problem_description } = req.body;
+
+    if (!user_id || !pattern || !code) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id, pattern, and code are required'
+      });
+    }
+
+    console.log(`Solution submission from user ${user_id}: ${pattern}`);
+
+    // Request evaluation from agent service
+    const agentResult = await agentService.requestEvaluationFromAgent(
+      code,
+      pattern,
+      problem_description || 'No description provided',
+      user_id
+    );
+
+    if (!agentResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to evaluate code',
+        details: agentResult.error
+      });
+    }
+
+    const evaluation = agentResult.evaluation;
+
+    // Update user memory based on evaluation
+    const user = memoryStore.updateUserAfterSubmission(
+      user_id,
+      pattern,
+      evaluation.correct,
+      evaluation
+    );
+
+    res.json({
+      success: true,
+      correct: evaluation.correct,
+      errors: evaluation.errors,
+      complexity: evaluation.complexity,
+      suggestions: evaluation.suggestions,
+      pattern_usage: evaluation.pattern_usage,
+      code_quality: evaluation.code_quality,
+      score: evaluation.score,
+      credits_used: agentResult.credits_used,
+      total_credits_used: user.credits_used,
+      weak_patterns: Object.keys(user.weak_patterns),
+      agent_info: agentResult.agent_info
+    });
+
+  } catch (error) {
+    console.error('Error in /api/submit_solution:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/user_profile/:user_id
+ * Get user profile with statistics and weak patterns
+ */
+app.get('/api/user_profile/:user_id', (req, res) => {
+  try {
+    const { user_id } = req.params;
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id is required'
+      });
+    }
+
+    const profile = memoryStore.getUserProfile(user_id);
+
+    res.json({
+      success: true,
+      profile
+    });
+
+  } catch (error) {
+    console.error('Error in /api/user_profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/patterns
+ * Get list of supported patterns
+ */
+app.get('/api/patterns', (req, res) => {
+  const patterns = [
+    { id: 'sliding_window', name: 'Sliding Window', description: 'Maintain a window that slides through the data' },
+    { id: 'two_pointers', name: 'Two Pointers', description: 'Use two pointers to traverse data from different positions' },
+    { id: 'binary_search', name: 'Binary Search', description: 'Divide and conquer on sorted data' },
+    { id: 'dynamic_programming', name: 'Dynamic Programming', description: 'Break down problems into overlapping subproblems' },
+    { id: 'graph_bfs', name: 'Graph BFS', description: 'Breadth-first search for graph traversal' },
+    { id: 'graph_dfs', name: 'Graph DFS', description: 'Depth-first search for graph traversal' },
+    { id: 'backtracking', name: 'Backtracking', description: 'Explore all possibilities by trying and undoing choices' },
+    { id: 'greedy', name: 'Greedy', description: 'Make locally optimal choices at each step' },
+    { id: 'heap', name: 'Heap/Priority Queue', description: 'Use heap data structure for priority-based problems' },
+    { id: 'linked_list', name: 'Linked List', description: 'Manipulate linked list data structures' }
+  ];
+
+  res.json({
+    success: true,
+    patterns
+  });
+});
+
+/**
+ * GET /api/agent_metrics
+ * Get agent service metrics
+ */
+app.get('/api/agent_metrics', (req, res) => {
+  try {
+    const metrics = agentService.getAgentMetrics();
+    const agents = agentService.getAvailableAgents();
+
+    res.json({
+      success: true,
+      metrics,
+      agents
+    });
+
+  } catch (error) {
+    console.error('Error in /api/agent_metrics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/health
+ * Health check endpoint
+ */
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    gemini_configured: !!process.env.GEMINI_API_KEY
+  });
+});
+
+// Serve index.html for root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route not found'
+  });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    message: err.message
+  });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log('='.repeat(60));
+  console.log('🎯 Pattern-Trainer Agent Server Started!');
+  console.log('='.repeat(60));
+  console.log(`📡 Server running on: http://localhost:${PORT}`);
+  console.log(`🤖 Gemini API configured: ${!!process.env.GEMINI_API_KEY}`);
+  console.log(`📊 Agent marketplace active`);
+  console.log('='.repeat(60));
+  console.log('Available endpoints:');
+  console.log('  POST   /api/request_challenge');
+  console.log('  POST   /api/submit_solution');
+  console.log('  GET    /api/user_profile/:user_id');
+  console.log('  GET    /api/patterns');
+  console.log('  GET    /api/agent_metrics');
+  console.log('  GET    /api/health');
+  console.log('='.repeat(60));
+});
+
+module.exports = app;

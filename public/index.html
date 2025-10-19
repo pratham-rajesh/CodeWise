@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern-Trainer Agent 🎯</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🎯 Pattern-Trainer Agent</h1>
+            <p class="subtitle">AI-Powered Algorithm Practice with Adaptive Learning</p>
+        </header>
+
+        <!-- User Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">User ID:</span>
+                <span class="stat-value" id="userId">guest</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Credits Used:</span>
+                <span class="stat-value" id="creditsUsed">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Success Rate:</span>
+                <span class="stat-value" id="successRate">0%</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Challenges:</span>
+                <span class="stat-value" id="totalChallenges">0</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Panel: Challenge Request & User Profile -->
+            <div class="left-panel">
+                <!-- Challenge Request Card -->
+                <div class="card">
+                    <h2>📝 Request Challenge</h2>
+
+                    <div class="form-group">
+                        <label for="patternSelect">Select Pattern:</label>
+                        <select id="patternSelect" class="form-control">
+                            <option value="">Loading patterns...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="difficultySelect">Difficulty:</label>
+                        <select id="difficultySelect" class="form-control">
+                            <option value="easy">Easy</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="hard">Hard</option>
+                        </select>
+                    </div>
+
+                    <button id="getChallengeBtn" class="btn btn-primary">
+                        🎯 Get Challenge
+                    </button>
+
+                    <div id="challengeLoading" class="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Generating challenge via AI Agent...</p>
+                    </div>
+                </div>
+
+                <!-- User Profile Card -->
+                <div class="card">
+                    <h2>👤 Your Profile</h2>
+
+                    <div class="profile-section">
+                        <h3>🔴 Weak Patterns</h3>
+                        <div id="weakPatterns" class="pattern-list">
+                            <p class="empty-state">Complete some challenges to see your weak patterns</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <h3>🟢 Strong Patterns</h3>
+                        <div id="strongPatterns" class="pattern-list">
+                            <p class="empty-state">Complete some challenges to see your strong patterns</p>
+                        </div>
+                    </div>
+
+                    <button id="refreshProfileBtn" class="btn btn-secondary">
+                        🔄 Refresh Profile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Problem & Solution -->
+            <div class="right-panel">
+                <!-- Problem Display Card -->
+                <div class="card problem-card">
+                    <div class="problem-header">
+                        <h2 id="problemTitle">Select a pattern and get a challenge!</h2>
+                        <span id="problemDifficulty" class="difficulty-badge"></span>
+                    </div>
+
+                    <div id="problemContent" class="problem-content">
+                        <p class="empty-state">Click "Get Challenge" to start practicing 🚀</p>
+                    </div>
+                </div>
+
+                <!-- Code Editor Card -->
+                <div class="card">
+                    <h2>💻 Your Solution</h2>
+
+                    <div class="editor-container">
+                        <textarea id="codeEditor" class="code-editor" placeholder="Write your solution here...
+
+Example (Python):
+def solution(nums, k):
+    # Your code here
+    pass
+
+Example (JavaScript):
+function solution(nums, k) {
+    // Your code here
+}
+"></textarea>
+                    </div>
+
+                    <div class="editor-actions">
+                        <button id="submitBtn" class="btn btn-success" disabled>
+                            ✅ Submit Solution
+                        </button>
+                        <button id="clearBtn" class="btn btn-secondary">
+                            🗑️ Clear Code
+                        </button>
+                    </div>
+
+                    <div id="submitLoading" class="loading" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Evaluating your code via AI Agent...</p>
+                    </div>
+                </div>
+
+                <!-- Feedback Card -->
+                <div id="feedbackCard" class="card feedback-card" style="display: none;">
+                    <h2>📊 Feedback</h2>
+                    <div id="feedbackContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by Google Gemini AI & Fetch.ai Agent Architecture</p>
+            <p>🤖 <span id="agentStatus">Agent marketplace active</span></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
