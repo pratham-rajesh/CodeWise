@@ -204,6 +204,79 @@ Provide detailed, constructive feedback:`;
       score: 85
     };
   }
+
+  async analyzeNoteImage(imageBase64, problemTitle, problemDescription, pattern, difficulty) {
+    if (!this.genAI) {
+      return {
+        success: false,
+        error: 'Gemini API not configured'
+      };
+    }
+
+    try {
+      // Use vision model for image analysis
+      const visionModel = this.genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+
+      const prompt = `You are a helpful coding mentor analyzing a student's handwritten notes or diagram for solving a coding problem.
+
+**Problem Context:**
+Title: ${problemTitle}
+Pattern: ${pattern}
+Difficulty: ${difficulty}
+Description: ${problemDescription}
+
+**Your Task:**
+Analyze the uploaded image (handwritten notes, diagrams, or problem-solving approach) and provide:
+1. A brief analysis of what approach/thinking you see in the notes
+2. 3-5 helpful hints or nudges that guide them in the right direction WITHOUT revealing the complete solution
+3. An encouraging message
+
+**Important Guidelines:**
+- DO NOT provide the complete solution or full code
+- Give hints that help them think through the problem
+- Point out if they're on the right track or suggest alternative approaches
+- Be encouraging and supportive
+- If the image is unclear or unrelated, politely ask for a clearer image
+
+Format your response as JSON:
+{
+  "analysis": "Brief analysis of their approach from the notes",
+  "hints": ["hint 1", "hint 2", "hint 3"],
+  "encouragement": "Encouraging message"
+}`;
+
+      const imagePart = {
+        inlineData: {
+          data: imageBase64,
+          mimeType: 'image/jpeg'
+        }
+      };
+
+      const result = await visionModel.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const analysisData = JSON.parse(jsonMatch[0]);
+        return {
+          success: true,
+          analysis: analysisData.analysis || 'Unable to analyze notes',
+          hints: analysisData.hints || [],
+          encouragement: analysisData.encouragement || 'Keep up the great work!'
+        };
+      } else {
+        throw new Error('Invalid JSON response from Gemini Vision');
+      }
+    } catch (error) {
+      console.error('Error analyzing note image with Gemini Vision:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = new GeminiService();

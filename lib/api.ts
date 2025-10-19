@@ -145,4 +145,49 @@ export const api = {
     const res = await fetch(`${API_BASE}/api/health`);
     return res.json();
   },
+
+  async getImageHint(
+    userId: string,
+    imageBase64: string,
+    problemDescription: string,
+    problemTitle: string,
+    pattern: string,
+    difficulty: string
+  ): Promise<{
+    success: boolean;
+    analysis?: string;
+    hints?: string[];
+    encouragement?: string;
+    credits_used?: number;
+    total_credits_used?: number;
+    error?: string;
+  }> {
+    try {
+      const res = await fetch(`${API_BASE}/api/get_image_hint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          image_base64: imageBase64,
+          problem_description: problemDescription,
+          problem_title: problemTitle,
+          pattern,
+          difficulty,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      console.error('Error getting image hint:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network error. Please check if the backend server is running.',
+      };
+    }
+  },
 };

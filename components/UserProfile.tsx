@@ -1,10 +1,15 @@
 'use client';
 
+import { Problem } from '@/lib/api';
+import ImageHintUploader from './ImageHintUploader';
+
 interface UserProfileProps {
   weakPatterns: Array<{ pattern: string; weakness_score: number | string }>;
   strongPatterns: Array<{ pattern: string; success_rate: number | string }>;
   onRefresh: () => void;
   loading?: boolean;
+  currentProblem?: Problem | null;
+  userId?: string;
 }
 
 export default function UserProfile({
@@ -12,6 +17,8 @@ export default function UserProfile({
   strongPatterns,
   onRefresh,
   loading = false,
+  currentProblem = null,
+  userId = '',
 }: UserProfileProps) {
   const formatPatternName = (patternId: string) => {
     return patternId
@@ -90,6 +97,13 @@ export default function UserProfile({
             )}
           </div>
         </div>
+
+        {/* Image Hint Uploader */}
+        <ImageHintUploader
+          currentProblem={currentProblem}
+          userId={userId}
+          onHintReceived={onRefresh}
+        />
 
         {/* Refresh Button */}
         <button

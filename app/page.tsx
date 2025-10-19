@@ -211,6 +211,8 @@ export default function Home() {
               strongPatterns={userProfile?.strong_patterns || []}
               onRefresh={loadUserProfile}
               loading={profileLoading}
+              currentProblem={currentProblem}
+              userId={userId}
             />
           </div>
 

@@ -8,6 +8,7 @@ const { connectMongoDB, isConnected } = require('./config/database');
 const memoryStore = require('./services/memoryStore');
 const mongoStore = require('./services/mongoStore');
 const agentService = require('./services/agentService');
+const geminiService = require('./services/geminiService');
 
 // Use MongoDB if enabled and connected, otherwise use memoryStore
 const USE_MONGODB = process.env.USE_MONGODB !== 'false';
@@ -18,8 +19,9 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Increase limit to 10MB to handle image uploads (5MB limit enforced on client side)
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -279,6 +281,63 @@ app.get('/api/agent_metrics', (req, res) => {
 });
 
 /**
+ * POST /api/get_image_hint
+ * Analyze uploaded image of user notes and provide hints
+ */
+app.post('/api/get_image_hint', async (req, res) => {
+  try {
+    const { user_id, image_base64, problem_description, problem_title, pattern, difficulty } = req.body;
+
+    if (!user_id || !image_base64 || !problem_description || !problem_title || !pattern) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id, image_base64, problem_description, problem_title, and pattern are required'
+      });
+    }
+
+    console.log(`Image hint request from user ${user_id}: ${problem_title}`);
+
+    // Analyze the image using Gemini Vision
+    const result = await geminiService.analyzeNoteImage(
+      image_base64,
+      problem_title,
+      problem_description,
+      pattern,
+      difficulty || 'medium'
+    );
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to analyze image',
+        details: result.error
+      });
+    }
+
+    // Deduct credits (0.5 credits for hint)
+    const user = await dataStore.getUser(user_id);
+    user.credits_used += 0.5;
+
+    res.json({
+      success: true,
+      analysis: result.analysis,
+      hints: result.hints,
+      encouragement: result.encouragement,
+      credits_used: 0.5,
+      total_credits_used: user.credits_used
+    });
+
+  } catch (error) {
+    console.error('Error in /api/get_image_hint:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/health
  * Health check endpoint
  */
@@ -345,6 +404,7 @@ async function startServer() {
     console.log('Available endpoints:');
     console.log('  POST   /api/request_challenge');
     console.log('  POST   /api/submit_solution');
+    console.log('  POST   /api/get_image_hint');
     console.log('  GET    /api/user_profile/:user_id');
     console.log('  GET    /api/user_problems/:user_id');
     console.log('  GET    /api/patterns');

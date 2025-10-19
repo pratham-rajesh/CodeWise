@@ -52,29 +52,33 @@ export default function ProblemDisplay({ problem }: ProblemDisplayProps) {
             <span>Examples</span>
           </h3>
           <div className="space-y-4">
-            {problem.examples.map((example, idx) => (
-              <div
-                key={idx}
-                className="bg-notion-bg-secondary p-4 rounded-md border border-notion-border"
-              >
-                <div className="font-medium text-sm text-notion-text mb-2">
-                  Example {idx + 1}:
-                </div>
-                <div className="space-y-1 font-mono text-sm">
-                  <div className="text-notion-text-secondary">
-                    <span className="text-notion-text font-semibold">Input:</span> {example.input}
+            {problem.examples.map((example, idx) => {
+              const inputStr = typeof example.input === 'string' ? example.input : JSON.stringify(example.input);
+              const outputStr = typeof example.output === 'string' ? example.output : JSON.stringify(example.output);
+              return (
+                <div
+                  key={idx}
+                  className="bg-notion-bg-secondary p-4 rounded-md border border-notion-border"
+                >
+                  <div className="font-medium text-sm text-notion-text mb-2">
+                    Example {idx + 1}:
                   </div>
-                  <div className="text-notion-text-secondary">
-                    <span className="text-notion-text font-semibold">Output:</span> {example.output}
-                  </div>
-                  {example.explanation && (
-                    <div className="text-notion-text-secondary italic mt-2">
-                      {example.explanation}
+                  <div className="space-y-1 font-mono text-sm">
+                    <div className="text-notion-text-secondary">
+                      <span className="text-notion-text font-semibold">Input:</span> {inputStr}
                     </div>
-                  )}
+                    <div className="text-notion-text-secondary">
+                      <span className="text-notion-text font-semibold">Output:</span> {outputStr}
+                    </div>
+                    {example.explanation && (
+                      <div className="text-notion-text-secondary italic mt-2">
+                        {example.explanation}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -87,14 +91,18 @@ export default function ProblemDisplay({ problem }: ProblemDisplayProps) {
             <span>Test Cases</span>
           </h3>
           <div className="space-y-2">
-            {problem.test_cases.map((tc, idx) => (
-              <div
-                key={idx}
-                className="bg-notion-bg-secondary px-4 py-2 rounded-md border border-notion-border font-mono text-sm text-notion-text-secondary"
-              >
-                Test {idx + 1}: {tc.input} → {tc.expected_output}
-              </div>
-            ))}
+            {problem.test_cases.map((tc, idx) => {
+              const inputStr = typeof tc.input === 'string' ? tc.input : JSON.stringify(tc.input);
+              const outputStr = typeof tc.expected_output === 'string' ? tc.expected_output : JSON.stringify(tc.expected_output);
+              return (
+                <div
+                  key={idx}
+                  className="bg-notion-bg-secondary px-4 py-2 rounded-md border border-notion-border font-mono text-sm text-notion-text-secondary"
+                >
+                  Test {idx + 1}: {inputStr} → {outputStr}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
