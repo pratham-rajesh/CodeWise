@@ -4,8 +4,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 
+const { connectMongoDB, isConnected } = require('./config/database');
 const memoryStore = require('./services/memoryStore');
+const mongoStore = require('./services/mongoStore');
 const agentService = require('./services/agentService');
+
+// Use MongoDB if enabled and connected, otherwise use memoryStore
+const USE_MONGODB = process.env.USE_MONGODB !== 'false';
+let dataStore = memoryStore; // Default to memoryStore
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -59,7 +65,10 @@ app.post('/api/request_challenge', async (req, res) => {
     }
 
     // Update user memory
-    const user = memoryStore.updateUserAfterChallenge(user_id, pattern, difficulty);
+    const user = await dataStore.updateUserAfterChallenge(user_id, pattern, difficulty);
+
+    // Save problem to MongoDB if available
+    await dataStore.saveProblem(user_id, agentResult.problem);
 
     res.json({
       success: true,
@@ -115,12 +124,15 @@ app.post('/api/submit_solution', async (req, res) => {
     const evaluation = agentResult.evaluation;
 
     // Update user memory based on evaluation
-    const user = memoryStore.updateUserAfterSubmission(
+    const user = await dataStore.updateUserAfterSubmission(
       user_id,
       pattern,
       evaluation.correct,
       evaluation
     );
+
+    // Update problem with solution
+    await dataStore.updateProblemSolution(user_id, pattern, code, evaluation);
 
     res.json({
       success: true,
@@ -151,7 +163,7 @@ app.post('/api/submit_solution', async (req, res) => {
  * GET /api/user_profile/:user_id
  * Get user profile with statistics and weak patterns
  */
-app.get('/api/user_profile/:user_id', (req, res) => {
+app.get('/api/user_profile/:user_id', async (req, res) => {
   try {
     const { user_id } = req.params;
 
@@ -162,7 +174,7 @@ app.get('/api/user_profile/:user_id', (req, res) => {
       });
     }
 
-    const profile = memoryStore.getUserProfile(user_id);
+    const profile = await dataStore.getUserProfile(user_id);
 
     res.json({
       success: true,
@@ -204,6 +216,44 @@ app.get('/api/patterns', (req, res) => {
 });
 
 /**
+ * GET /api/user_problems/:user_id
+ * Get user's problem history with optional filters
+ */
+app.get('/api/user_problems/:user_id', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const { pattern, solved } = req.query;
+
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id is required'
+      });
+    }
+
+    const filters = {};
+    if (pattern) filters.pattern = pattern;
+    if (solved !== undefined) filters.solved = solved === 'true';
+
+    const problems = await dataStore.getUserProblems(user_id, filters);
+
+    res.json({
+      success: true,
+      problems,
+      count: problems.length
+    });
+
+  } catch (error) {
+    console.error('Error in /api/user_problems:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/agent_metrics
  * Get agent service metrics
  */
@@ -237,7 +287,9 @@ app.get('/api/health', (req, res) => {
     success: true,
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    gemini_configured: !!process.env.GEMINI_API_KEY
+    gemini_configured: !!process.env.GEMINI_API_KEY,
+    mongodb_connected: isConnected(),
+    storage_type: isConnected() ? 'mongodb' : 'in-memory'
   });
 });
 
@@ -264,23 +316,48 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log('='.repeat(60));
-  console.log('🎯 Pattern-Trainer Agent Server Started!');
-  console.log('='.repeat(60));
-  console.log(`📡 Server running on: http://localhost:${PORT}`);
-  console.log(`🤖 Gemini API configured: ${!!process.env.GEMINI_API_KEY}`);
-  console.log(`📊 Agent marketplace active`);
-  console.log('='.repeat(60));
-  console.log('Available endpoints:');
-  console.log('  POST   /api/request_challenge');
-  console.log('  POST   /api/submit_solution');
-  console.log('  GET    /api/user_profile/:user_id');
-  console.log('  GET    /api/patterns');
-  console.log('  GET    /api/agent_metrics');
-  console.log('  GET    /api/health');
-  console.log('='.repeat(60));
+// Start server with async initialization
+async function startServer() {
+  // Try to connect to MongoDB if enabled
+  if (USE_MONGODB) {
+    console.log('🔄 Attempting MongoDB connection...');
+    const connected = await connectMongoDB();
+    if (connected) {
+      dataStore = mongoStore;
+      console.log('✅ Using MongoDB for data storage');
+    } else {
+      console.log('⚠️  Using in-memory storage as fallback');
+    }
+  } else {
+    console.log('ℹ️  MongoDB disabled via USE_MONGODB env variable');
+    console.log('📦 Using in-memory storage');
+  }
+
+  app.listen(PORT, () => {
+    console.log('='.repeat(60));
+    console.log('🎯 Pattern-Trainer Agent Server Started!');
+    console.log('='.repeat(60));
+    console.log(`📡 Server running on: http://localhost:${PORT}`);
+    console.log(`🤖 Gemini API configured: ${!!process.env.GEMINI_API_KEY}`);
+    console.log(`💾 Storage type: ${isConnected() ? 'MongoDB' : 'In-Memory'}`);
+    console.log(`📊 Agent marketplace active`);
+    console.log('='.repeat(60));
+    console.log('Available endpoints:');
+    console.log('  POST   /api/request_challenge');
+    console.log('  POST   /api/submit_solution');
+    console.log('  GET    /api/user_profile/:user_id');
+    console.log('  GET    /api/user_problems/:user_id');
+    console.log('  GET    /api/patterns');
+    console.log('  GET    /api/agent_metrics');
+    console.log('  GET    /api/health');
+    console.log('='.repeat(60));
+  });
+}
+
+// Start the server
+startServer().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
 
 module.exports = app;
