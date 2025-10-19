@@ -333,7 +333,7 @@ async function startServer() {
     console.log('📦 Using in-memory storage');
   }
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log('='.repeat(60));
     console.log('🎯 Pattern-Trainer Agent Server Started!');
     console.log('='.repeat(60));
@@ -352,6 +352,11 @@ async function startServer() {
     console.log('  GET    /api/health');
     console.log('='.repeat(60));
   });
+
+  // Set server timeout to 5 minutes (AI API calls can take time)
+  server.timeout = 300000; // 5 minutes
+  server.keepAliveTimeout = 300000;
+  server.headersTimeout = 310000; // Slightly higher than keepAliveTimeout
 }
 
 // Start the server
