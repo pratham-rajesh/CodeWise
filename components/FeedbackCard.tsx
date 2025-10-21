@@ -78,7 +78,7 @@ export default function FeedbackCard({ feedback, explanationEvaluation }: Feedba
         )}
 
         {/* Errors */}
-        {feedback.errors && feedback.errors.length > 0 && (
+        {feedback?.errors && feedback.errors.length > 0 && (
           <div className="bg-notion-bg-secondary p-4 rounded-md border border-notion-border">
             <h3 className="text-sm font-semibold text-notion-text mb-2 flex items-center gap-2">
               <span>🐛</span>
@@ -96,7 +96,7 @@ export default function FeedbackCard({ feedback, explanationEvaluation }: Feedba
         )}
 
         {/* Complexity Analysis */}
-        {feedback.complexity && (
+        {feedback?.complexity && (
           <div className="bg-notion-bg-secondary p-4 rounded-md border border-notion-border">
             <h3 className="text-sm font-semibold text-notion-text mb-2 flex items-center gap-2">
               <span>⏱️</span>
@@ -120,7 +120,7 @@ export default function FeedbackCard({ feedback, explanationEvaluation }: Feedba
         )}
 
         {/* Pattern Usage */}
-        {feedback.pattern_usage && (
+        {feedback?.pattern_usage && (
           <div className="bg-notion-bg-secondary p-4 rounded-md border border-notion-border">
             <h3 className="text-sm font-semibold text-notion-text mb-2 flex items-center gap-2">
               <span>🎯</span>
@@ -131,7 +131,7 @@ export default function FeedbackCard({ feedback, explanationEvaluation }: Feedba
         )}
 
         {/* Code Quality */}
-        {feedback.code_quality && (
+        {feedback?.code_quality && (
           <div className="bg-notion-bg-secondary p-4 rounded-md border border-notion-border">
             <h3 className="text-sm font-semibold text-notion-text mb-2 flex items-center gap-2">
               <span>✨</span>
@@ -142,7 +142,7 @@ export default function FeedbackCard({ feedback, explanationEvaluation }: Feedba
         )}
 
         {/* Suggestions */}
-        {feedback.suggestions && feedback.suggestions.length > 0 && (
+        {feedback?.suggestions && feedback.suggestions.length > 0 && (
           <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
             <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
               <span>💡</span>
@@ -160,7 +160,7 @@ export default function FeedbackCard({ feedback, explanationEvaluation }: Feedba
         )}
 
         {/* Weak Patterns */}
-        {feedback.weak_patterns && feedback.weak_patterns.length > 0 && (
+        {feedback?.weak_patterns && feedback.weak_patterns.length > 0 && (
           <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
             <h3 className="text-sm font-semibold text-yellow-900 mb-2 flex items-center gap-2">
               <span>📈</span>
