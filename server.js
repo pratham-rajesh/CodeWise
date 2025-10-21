@@ -338,6 +338,65 @@ app.post('/api/get_image_hint', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/evaluate_explanation
+ * Evaluate voice explanation of solution using Gemini Audio API
+ */
+app.post('/api/evaluate_explanation', async (req, res) => {
+  try {
+    const { user_id, audio_base64, problem_title, problem_description, pattern, difficulty } = req.body;
+
+    if (!user_id || !audio_base64 || !problem_title || !problem_description || !pattern) {
+      return res.status(400).json({
+        success: false,
+        error: 'user_id, audio_base64, problem_title, problem_description, and pattern are required'
+      });
+    }
+
+    console.log(`Voice explanation evaluation request from user ${user_id}: ${problem_title}`);
+
+    // Evaluate the voice explanation using Gemini Audio
+    const result = await geminiService.evaluateVoiceExplanation(
+      audio_base64,
+      problem_title,
+      problem_description,
+      pattern,
+      difficulty || 'medium'
+    );
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to evaluate explanation',
+        details: result.error
+      });
+    }
+
+    // Deduct credits (1 credit for voice evaluation)
+    const user = await dataStore.getUser(user_id);
+    user.credits_used += 1;
+
+    res.json({
+      success: true,
+      transcript: result.transcript,
+      score: result.score,
+      feedback: result.feedback,
+      strengths: result.strengths,
+      suggestions: result.suggestions,
+      credits_used: 1,
+      total_credits_used: user.credits_used
+    });
+
+  } catch (error) {
+    console.error('Error in /api/evaluate_explanation:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 // ==================== Blind 75 Routes ====================
 
 /**

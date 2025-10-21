@@ -1,13 +1,14 @@
 'use client';
 
-import { EvaluationResult } from '@/lib/api';
+import { EvaluationResult, ExplanationEvaluation } from '@/lib/api';
 
 interface FeedbackCardProps {
   feedback: EvaluationResult | null;
+  explanationEvaluation?: ExplanationEvaluation | null;
 }
 
-export default function FeedbackCard({ feedback }: FeedbackCardProps) {
-  if (!feedback) return null;
+export default function FeedbackCard({ feedback, explanationEvaluation }: FeedbackCardProps) {
+  if (!feedback && !explanationEvaluation) return null;
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-700 bg-green-50 border-green-200';
@@ -23,29 +24,58 @@ export default function FeedbackCard({ feedback }: FeedbackCardProps) {
       </h2>
 
       <div className="space-y-4">
-        {/* Correctness & Score */}
-        <div
-          className={`p-4 rounded-md border ${
-            feedback.correct
-              ? 'bg-green-50 border-green-200'
-              : 'bg-red-50 border-red-200'
-          }`}
-        >
-          <h3 className="font-semibold mb-2 flex items-center gap-2">
-            <span>{feedback.correct ? '✅' : '❌'}</span>
-            <span>{feedback.correct ? 'Correct!' : 'Incorrect'}</span>
-          </h3>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Score:</span>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-bold border ${getScoreColor(
-                feedback.score
-              )}`}
-            >
-              {feedback.score}/100
-            </span>
+        {/* Dual Score Overview (if both available) */}
+        {feedback && explanationEvaluation && (
+          <div className="p-4 rounded-md border bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
+            <h3 className="font-semibold mb-3 text-blue-900">Overall Performance</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center">
+                <p className="text-xs font-medium text-blue-800 mb-1">Code Score</p>
+                <div className={`px-3 py-2 rounded-md text-lg font-bold ${getScoreColor(feedback.score)}`}>
+                  {feedback.score}/100
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-purple-800 mb-1">Explanation Score</p>
+                <div className={`px-3 py-2 rounded-md text-lg font-bold ${getScoreColor(explanationEvaluation.score)}`}>
+                  {explanationEvaluation.score}/100
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-blue-300 text-center">
+              <p className="text-xs font-medium text-blue-800 mb-1">Combined Average</p>
+              <div className="text-2xl font-bold text-blue-900">
+                {Math.round((feedback.score + explanationEvaluation.score) / 2)}/100
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Correctness & Code Score (if only code feedback) */}
+        {feedback && !explanationEvaluation && (
+          <div
+            className={`p-4 rounded-md border ${
+              feedback.correct
+                ? 'bg-green-50 border-green-200'
+                : 'bg-red-50 border-red-200'
+            }`}
+          >
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <span>{feedback.correct ? '✅' : '❌'}</span>
+              <span>{feedback.correct ? 'Correct!' : 'Incorrect'}</span>
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Score:</span>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-bold border ${getScoreColor(
+                  feedback.score
+                )}`}
+              >
+                {feedback.score}/100
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Errors */}
         {feedback.errors && feedback.errors.length > 0 && (

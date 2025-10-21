@@ -56,6 +56,25 @@ export interface EvaluationResult {
   weak_patterns: string[];
 }
 
+export interface ExplanationEvaluation {
+  success: boolean;
+  score: number; // 0-100
+  transcript: string;
+  feedback: {
+    clarity: number; // 0-20
+    problemUnderstanding: number; // 0-20
+    approachExplanation: number; // 0-20
+    complexityAnalysis: number; // 0-20
+    edgeCases: number; // 0-10
+    communication: number; // 0-10
+  };
+  suggestions: string[];
+  strengths: string[];
+  credits_used?: number;
+  total_credits_used?: number;
+  error?: string;
+}
+
 export const api = {
   async getPatterns(): Promise<Pattern[]> {
     const res = await fetch(`${API_BASE}/api/patterns`);
@@ -186,6 +205,55 @@ export const api = {
       console.error('Error getting image hint:', error);
       return {
         success: false,
+        error: error instanceof Error ? error.message : 'Network error. Please check if the backend server is running.',
+      };
+    }
+  },
+
+  async evaluateExplanation(
+    userId: string,
+    audioBase64: string,
+    problemTitle: string,
+    problemDescription: string,
+    pattern: string,
+    difficulty: string
+  ): Promise<ExplanationEvaluation> {
+    try {
+      const res = await fetch(`${API_BASE}/api/evaluate_explanation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          audio_base64: audioBase64,
+          problem_title: problemTitle,
+          problem_description: problemDescription,
+          pattern,
+          difficulty,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      return data;
+    } catch (error) {
+      console.error('Error evaluating explanation:', error);
+      return {
+        success: false,
+        score: 0,
+        transcript: '',
+        feedback: {
+          clarity: 0,
+          problemUnderstanding: 0,
+          approachExplanation: 0,
+          complexityAnalysis: 0,
+          edgeCases: 0,
+          communication: 0,
+        },
+        suggestions: [],
+        strengths: [],
         error: error instanceof Error ? error.message : 'Network error. Please check if the backend server is running.',
       };
     }

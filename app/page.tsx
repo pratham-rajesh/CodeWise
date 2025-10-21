@@ -7,7 +7,8 @@ import UserProfile from '@/components/UserProfile';
 import ProblemDisplay from '@/components/ProblemDisplay';
 import CodeEditor from '@/components/CodeEditor';
 import FeedbackCard from '@/components/FeedbackCard';
-import { api, Pattern, Problem, UserProfile as UserProfileType, EvaluationResult } from '@/lib/api';
+import VoiceExplanationRecorder from '@/components/VoiceExplanationRecorder';
+import { api, Pattern, Problem, UserProfile as UserProfileType, EvaluationResult, ExplanationEvaluation } from '@/lib/api';
 
 export default function Home() {
   // User state
@@ -29,6 +30,7 @@ export default function Home() {
   const [submitLoading, setSubmitLoading] = useState<boolean>(false);
   const [profileLoading, setProfileLoading] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<EvaluationResult | null>(null);
+  const [explanationEvaluation, setExplanationEvaluation] = useState<ExplanationEvaluation | null>(null);
 
   // Profile state
   const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
@@ -169,6 +171,12 @@ export default function Home() {
     }
   };
 
+  const handleExplanationEvaluated = async (evaluation: ExplanationEvaluation) => {
+    setExplanationEvaluation(evaluation);
+    // Reload profile to get updated credits
+    await loadUserProfile();
+  };
+
   return (
     <div style={{ minHeight: '100vh', position: 'relative' }}>
       <Header
@@ -203,6 +211,12 @@ export default function Home() {
               currentProblem={currentProblem}
               userId={userId}
             />
+
+            <VoiceExplanationRecorder
+              currentProblem={currentProblem}
+              userId={userId}
+              onEvaluationReceived={handleExplanationEvaluated}
+            />
           </div>
 
           {/* Right Panel */}
@@ -218,7 +232,7 @@ export default function Home() {
               disabled={!currentProblem}
             />
 
-            <FeedbackCard feedback={feedback} />
+            <FeedbackCard feedback={feedback} explanationEvaluation={explanationEvaluation} />
           </div>
         </div>
       </main>

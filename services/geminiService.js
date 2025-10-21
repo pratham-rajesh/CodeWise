@@ -329,6 +329,100 @@ Format your response as JSON:
       };
     }
   }
+
+  async evaluateVoiceExplanation(audioBase64, problemTitle, problemDescription, pattern, difficulty) {
+    if (!this.genAI) {
+      return {
+        success: false,
+        error: 'Gemini API not configured'
+      };
+    }
+
+    try {
+      // Use multimodal model for audio analysis
+      const audioModel = this.genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+
+      const prompt = `You are an expert coding interviewer evaluating a candidate's verbal explanation of their solution to a coding problem.
+
+**Problem Context:**
+Title: ${problemTitle}
+Pattern: ${pattern}
+Difficulty: ${difficulty}
+Description: ${problemDescription}
+
+**Your Task:**
+Listen to the candidate's explanation and evaluate it based on these criteria:
+
+1. **Clarity (0-20 points)**: How clearly did they articulate their thoughts?
+2. **Problem Understanding (0-20 points)**: Did they correctly understand the problem and its requirements?
+3. **Approach Explanation (0-20 points)**: How well did they explain their solution approach and algorithm?
+4. **Complexity Analysis (0-20 points)**: Did they discuss time and space complexity accurately?
+5. **Edge Cases (0-10 points)**: Did they mention important edge cases and constraints?
+6. **Communication (0-10 points)**: Overall communication skills, structure, and professionalism
+
+**Important Guidelines:**
+- Be fair and constructive
+- Provide specific feedback on what they did well
+- Give actionable suggestions for improvement
+- Consider this is a learning environment, not a high-stakes interview
+
+Format your response as JSON:
+{
+  "transcript": "Brief transcript or summary of what they said",
+  "score": 0-100,
+  "feedback": {
+    "clarity": 0-20,
+    "problemUnderstanding": 0-20,
+    "approachExplanation": 0-20,
+    "complexityAnalysis": 0-20,
+    "edgeCases": 0-10,
+    "communication": 0-10
+  },
+  "strengths": ["strength 1", "strength 2"],
+  "suggestions": ["suggestion 1", "suggestion 2"]
+}`;
+
+      const audioPart = {
+        inlineData: {
+          data: audioBase64,
+          mimeType: 'audio/webm'
+        }
+      };
+
+      const result = await audioModel.generateContent([prompt, audioPart]);
+      const response = await result.response;
+      const text = response.text();
+
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const evaluationData = JSON.parse(jsonMatch[0]);
+        return {
+          success: true,
+          transcript: evaluationData.transcript || '',
+          score: evaluationData.score || 0,
+          feedback: evaluationData.feedback || {
+            clarity: 0,
+            problemUnderstanding: 0,
+            approachExplanation: 0,
+            complexityAnalysis: 0,
+            edgeCases: 0,
+            communication: 0
+          },
+          strengths: evaluationData.strengths || [],
+          suggestions: evaluationData.suggestions || []
+        };
+      } else {
+        throw new Error('Invalid JSON response from Gemini Audio');
+      }
+    } catch (error) {
+      console.error('Error evaluating voice explanation with Gemini:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = new GeminiService();
