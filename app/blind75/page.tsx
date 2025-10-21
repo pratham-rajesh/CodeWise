@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import Blind75Checklist from '@/components/Blind75Checklist';
 
 export default function Blind75Page() {
-  const [userId, setUserId] = useState('user123');
+  const [userId, setUserId] = useState('user_da741dsxm');
   const [statistics, setStatistics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

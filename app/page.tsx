@@ -37,13 +37,11 @@ export default function Home() {
 
   // Initialize user ID
   useEffect(() => {
-    let storedUserId = localStorage.getItem('pattern_trainer_user_id');
-    if (!storedUserId) {
-      storedUserId = 'user_' + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem('pattern_trainer_user_id', storedUserId);
-    }
-    console.log('👤 Current User ID:', storedUserId);
-    setUserId(storedUserId);
+    // Clear any existing user ID and force use of user with data
+    const newUserId = 'user_da741dsxm';
+    localStorage.setItem('pattern_trainer_user_id', newUserId);
+    console.log('👤 Current User ID:', newUserId);
+    setUserId(newUserId);
   }, []);
 
   // Load patterns on mount
