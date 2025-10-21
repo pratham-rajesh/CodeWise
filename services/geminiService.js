@@ -330,7 +330,7 @@ Format your response as JSON:
     }
   }
 
-  async evaluateVoiceExplanation(audioBase64, problemTitle, problemDescription, pattern, difficulty) {
+  async evaluateVoiceExplanation(audioBase64, problemTitle, problemDescription, pattern, difficulty, mimeType = 'audio/webm') {
     if (!this.genAI) {
       return {
         success: false,
@@ -341,6 +341,8 @@ Format your response as JSON:
     try {
       // Use multimodal model for audio analysis
       const audioModel = this.genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+
+      console.log(`Using Gemini model for audio with MIME type: ${mimeType}`);
 
       const prompt = `You are an expert coding interviewer evaluating a candidate's verbal explanation of their solution to a coding problem.
 
@@ -392,7 +394,7 @@ Format your response as JSON:
       const audioPart = {
         inlineData: {
           data: audioBase64,
-          mimeType: 'audio/webm'
+          mimeType
         }
       };
 

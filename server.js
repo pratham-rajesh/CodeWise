@@ -344,7 +344,7 @@ app.post('/api/get_image_hint', async (req, res) => {
  */
 app.post('/api/evaluate_explanation', async (req, res) => {
   try {
-    const { user_id, audio_base64, problem_title, problem_description, pattern, difficulty } = req.body;
+    const { user_id, audio_base64, audio_mime_type, problem_title, problem_description, pattern, difficulty } = req.body;
 
     if (!user_id || !audio_base64 || !problem_title || !problem_description || !pattern) {
       return res.status(400).json({
@@ -354,6 +354,7 @@ app.post('/api/evaluate_explanation', async (req, res) => {
     }
 
     console.log(`Voice explanation evaluation request from user ${user_id}: ${problem_title}`);
+    console.log(`Audio MIME type: ${audio_mime_type || 'audio/webm'}`);
 
     // Evaluate the voice explanation using Gemini Audio
     const result = await geminiService.evaluateVoiceExplanation(
@@ -361,7 +362,8 @@ app.post('/api/evaluate_explanation', async (req, res) => {
       problem_title,
       problem_description,
       pattern,
-      difficulty || 'medium'
+      difficulty || 'medium',
+      audio_mime_type || 'audio/webm'
     );
 
     if (!result.success) {

@@ -124,6 +124,7 @@ export default function VoiceExplanationRecorder({
           body: JSON.stringify({
             user_id: userId,
             audio_base64: base64Data,
+            audio_mime_type: audioBlob.type, // Send the actual mime type
             problem_title: currentProblem.title,
             problem_description: currentProblem.description,
             pattern: currentProblem.pattern,
