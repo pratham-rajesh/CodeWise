@@ -55,10 +55,10 @@ export default function Header({
                 backgroundClip: 'text',
                 letterSpacing: '-0.025em'
               }}>
-                Pattern-Trainer Agent
+                Code Wise
               </h1>
               <p style={{ fontSize: '0.875rem', color: 'var(--color-notion-text-secondary)', fontWeight: '500' }}>
-                AI-Powered Algorithm Practice ✨
+                A smart way to prepare for technical interviews
               </p>
             </div>
           </div>

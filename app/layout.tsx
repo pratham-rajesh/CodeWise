@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Pattern-Trainer Agent',
-  description: 'AI-Powered Algorithm Practice with Adaptive Learning',
+  title: 'Code Wise - Technical Interview Prep',
+  description: 'A smart way to prepare for technical interviews',
 }
 
 export default function RootLayout({
