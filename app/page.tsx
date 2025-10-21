@@ -12,7 +12,6 @@ import { api, Pattern, Problem, UserProfile as UserProfileType, EvaluationResult
 export default function Home() {
   // User state
   const [userId, setUserId] = useState<string>('');
-  const [creditsUsed, setCreditsUsed] = useState<number>(0);
   const [successRate, setSuccessRate] = useState<number>(0);
   const [totalChallenges, setTotalChallenges] = useState<number>(0);
 
@@ -77,7 +76,6 @@ export default function Home() {
 
       if (profile) {
         setUserProfile(profile);
-        setCreditsUsed(profile.credits_used);
         // Convert success rate to number (it comes as string from backend)
         const rate = typeof profile.overall_success_rate === 'string'
           ? parseFloat(profile.overall_success_rate)
@@ -86,7 +84,6 @@ export default function Home() {
         setTotalChallenges(profile.total_challenges);
 
         console.log('✅ Profile loaded:', {
-          credits: profile.credits_used,
           successRate: Math.round(rate),
           challenges: profile.total_challenges,
           weakPatterns: profile.weak_patterns.length,
@@ -112,9 +109,6 @@ export default function Home() {
 
       if (result.success && result.problem) {
         setCurrentProblem(result.problem);
-        if (result.total_credits_used !== undefined) {
-          setCreditsUsed(result.total_credits_used);
-        }
       } else {
         alert('Failed to generate challenge: ' + (result.error || 'Unknown error'));
       }
@@ -156,10 +150,6 @@ export default function Home() {
 
         setFeedback(evaluationResult);
 
-        if (result.total_credits_used !== undefined) {
-          setCreditsUsed(result.total_credits_used);
-        }
-
         // Reload profile to get updated stats
         await loadUserProfile();
       } else {
@@ -183,7 +173,6 @@ export default function Home() {
     <div style={{ minHeight: '100vh', position: 'relative' }}>
       <Header
         userId={userId}
-        creditsUsed={creditsUsed}
         successRate={successRate}
         totalChallenges={totalChallenges}
       />

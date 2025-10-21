@@ -159,7 +159,7 @@ export default function ImageHintUploader({
             Current Problem: <span className="font-bold">{currentProblem.title}</span>
           </p>
           <p className="text-xs text-blue-700 mt-1">
-            Pattern: {currentProblem.pattern.replace(/_/g, ' ')} • Difficulty: {currentProblem.difficulty}
+            Pattern: {currentProblem?.pattern?.replace(/_/g, ' ') || 'N/A'} • Difficulty: {currentProblem?.difficulty || 'N/A'}
           </p>
         </div>
 

@@ -1,4 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fs = require('fs');
+const path = require('path');
 
 class GeminiService {
   constructor() {
@@ -10,6 +12,34 @@ class GeminiService {
       this.genAI = new GoogleGenerativeAI(this.apiKey);
       this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
     }
+
+    // Load Blind 75 problems for reference
+    this.blind75Problems = this.loadBlind75();
+  }
+
+  loadBlind75() {
+    try {
+      const dataPath = path.join(__dirname, '../data/blind75.json');
+      if (fs.existsSync(dataPath)) {
+        const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+        console.log(`✅ Loaded ${data.length} Blind 75 problems for Gemini context`);
+        return data;
+      }
+    } catch (error) {
+      console.warn('⚠️  Could not load Blind 75 data:', error.message);
+    }
+    return [];
+  }
+
+  getExamplesByPattern(pattern, limit = 3) {
+    if (!this.blind75Problems || this.blind75Problems.length === 0) {
+      return [];
+    }
+
+    // Filter problems by pattern and return a subset
+    return this.blind75Problems
+      .filter(p => p.pattern === pattern && p.description)
+      .slice(0, limit);
   }
 
   async generateProblem(pattern, difficulty = 'medium', blind75Examples = []) {
@@ -18,6 +48,11 @@ class GeminiService {
     }
 
     try {
+      // Auto-load examples if not provided
+      if (!blind75Examples || blind75Examples.length === 0) {
+        blind75Examples = this.getExamplesByPattern(pattern, 3);
+      }
+
       // Build context from Blind 75 examples if available
       let contextSection = '';
       if (blind75Examples && blind75Examples.length > 0) {

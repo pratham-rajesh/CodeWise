@@ -1,18 +1,20 @@
 'use client';
 
+import Link from 'next/link';
+import { useState } from 'react';
+
 interface HeaderProps {
   userId: string;
-  creditsUsed: number;
   successRate: number;
   totalChallenges: number;
 }
 
 export default function Header({
   userId,
-  creditsUsed,
   successRate,
   totalChallenges,
 }: HeaderProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   return (
     <header style={{
       position: 'sticky',
@@ -78,19 +80,6 @@ export default function Header({
             </div>
             <div style={{
               padding: '0.5rem 1rem',
-              background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-              borderRadius: '9999px',
-              border: '2px solid #93c5fd',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.2)'
-            }}>
-              <span style={{ fontSize: '0.75rem', color: '#1e40af', fontWeight: '600' }}>💎 Credits:</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#1e3a8a' }}>{creditsUsed}</span>
-            </div>
-            <div style={{
-              padding: '0.5rem 1rem',
               background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
               borderRadius: '9999px',
               border: '2px solid #6ee7b7',
@@ -114,6 +103,105 @@ export default function Header({
             }}>
               <span style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: '600' }}>🏆 Challenges:</span>
               <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#78350f' }}>{totalChallenges}</span>
+            </div>
+
+            {/* Navigation Dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: 'var(--color-notion-text)',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)',
+                  border: '2px solid var(--color-notion-border)',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-notion-border)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+                }}
+              >
+                <span style={{ fontSize: '1rem' }}>☰</span>
+                <span>Menu</span>
+                <span style={{ fontSize: '0.75rem', transition: 'transform 0.2s', transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {dropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 0.5rem)',
+                  right: 0,
+                  background: 'white',
+                  border: '2px solid var(--color-notion-border)',
+                  borderRadius: '0.75rem',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)',
+                  minWidth: '200px',
+                  overflow: 'hidden',
+                  zIndex: 100
+                }}>
+                  <Link
+                    href="/"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.875rem 1rem',
+                      color: 'var(--color-notion-text)',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      transition: 'all 0.15s',
+                      borderBottom: '1px solid var(--color-notion-border)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.25rem' }}>🏠</span>
+                    <span>Home</span>
+                  </Link>
+                  <Link
+                    href="/blind75"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.875rem 1rem',
+                      color: 'var(--color-notion-text)',
+                      textDecoration: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      transition: 'all 0.15s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(139, 92, 246, 0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.25rem' }}>📋</span>
+                    <span>Blind 75 Checklist</span>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
